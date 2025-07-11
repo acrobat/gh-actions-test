@@ -6,6 +6,10 @@ on:
     pull_request:
         branches: [ main ]
 
+env:
+    PHP_VERSION: '8.4'
+    PHP_EXTENSIONS: mbstring, intl, pdo, pdo_mysql
+
 jobs:
     setup:
         name: Prepare dependencies
@@ -19,8 +23,8 @@ jobs:
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
 
             -   name: Cache Composer dependencies
@@ -43,8 +47,8 @@ jobs:
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     tools: cs2pr
                     coverage: none
 
@@ -67,8 +71,8 @@ jobs:
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
 
             -   name: Setup problem matchers for PHPUnit
@@ -100,8 +104,8 @@ jobs:
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
 
             -   name: Restore Composer dependencies
@@ -122,8 +126,8 @@ jobs:
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
 
             -   name: Validate composer setup
