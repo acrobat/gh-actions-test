@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class TestHelperTest extends TestCase
 {
-    public function testToUpperCase()
+    public function testToUpperCase(): void
     {
         $helper = new TestHelper();
         $input = 'hello world';

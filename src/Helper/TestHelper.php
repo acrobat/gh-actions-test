@@ -6,7 +6,6 @@ class TestHelper
 {
     public function toUpperCase(string $text): string
     {
-        return $text;
-//        return strtoupper($text);
+        return strtoupper($text);
     }
 }
