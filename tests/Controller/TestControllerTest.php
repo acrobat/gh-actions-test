@@ -11,6 +11,6 @@ final class TestControllerTest extends WebTestCase
         $client = static::createClient();
         $client->request('GET', '/test');
 
-        self::assertResponseIsSuccessful();
+        self::assertResponseIsUnprocessable();
     }
 }

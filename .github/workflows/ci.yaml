@@ -8,24 +8,28 @@ on:
 
 jobs:
     setup:
+        name: Prepare dependencies
         runs-on: ubuntu-latest
         outputs:
             cache-key: ${{ steps.composer-cache.outputs.cache-hit }}
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: '8.4'
                     extensions: mbstring, intl, pdo, pdo_mysql
                     coverage: none
+
             -   name: Cache Composer dependencies
                 id: composer-cache
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Install Composer dependencies
                 run: composer install --prefer-dist --no-progress --optimize-autoloader --no-scripts
 
@@ -35,19 +39,23 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: '8.4'
                     extensions: mbstring, intl, pdo, pdo_mysql
+                    tools: cs2pr
                     coverage: none
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Run php-cs-fixer
-                run: ./vendor/bin/php-cs-fixer fix --dry-run --diff
+                run: ./vendor/bin/php-cs-fixer fix -vvv --dry-run --format=checkstyle | cs2pr
 
     phpunit:
         needs: setup
@@ -55,21 +63,28 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: '8.4'
                     extensions: mbstring, intl, pdo, pdo_mysql
                     coverage: none
+
+            -   name: Setup problem matchers for PHPUnit
+                run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Prepare environment
                 run: |
                     bin/console assets:install --no-interaction
                     bin/console importmap:install
+
             -   name: Run phpunit
                 env:
                     APP_ENV: test
@@ -81,16 +96,19 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
                     php-version: '8.4'
                     extensions: mbstring, intl, pdo, pdo_mysql
                     coverage: none
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Run phpstan
                 run: ./vendor/bin/phpstan analyse
