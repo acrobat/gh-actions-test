@@ -46,7 +46,7 @@
         "twig/twig": "^2.12|^3.21.1"
     },
     "require-dev": {
-        "php-cs-fixer/shim": "^3.76",
+        "php-cs-fixer/shim": "^3.80",
         "phpstan/phpstan": "^2.1.17",
         "phpstan/phpstan-doctrine": "^2.0.3",
         "phpstan/phpstan-phpunit": "^2.0.6",

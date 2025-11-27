@@ -6,26 +6,34 @@ on:
     pull_request:
         branches: [ main ]
 
+env:
+    PHP_VERSION: '8.4'
+    PHP_EXTENSIONS: mbstring, intl, pdo, pdo_mysql
+
 jobs:
     setup:
+        name: Prepare dependencies
         runs-on: ubuntu-latest
         outputs:
             cache-key: ${{ steps.composer-cache.outputs.cache-hit }}
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
+
             -   name: Cache Composer dependencies
                 id: composer-cache
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Install Composer dependencies
                 run: composer install --prefer-dist --no-progress --optimize-autoloader --no-scripts
 
@@ -35,19 +43,23 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
+                    tools: cs2pr
                     coverage: none
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Run php-cs-fixer
-                run: ./vendor/bin/php-cs-fixer fix --dry-run --diff
+                run: ./vendor/bin/php-cs-fixer fix -vvv --dry-run --format=checkstyle | cs2pr
 
     phpunit:
         needs: setup
@@ -55,25 +67,27 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
+
+            -   name: Setup problem matchers for PHPUnit
+                run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-            -   name: Prepare environment
-                run: |
-                    bin/console assets:install --no-interaction
-                    bin/console importmap:install
+
             -   name: Run phpunit
                 env:
                     APP_ENV: test
-                run: ./vendor/bin/phpunit
+                run: ./vendor/bin/phpunit --testsuite=unit
 
     phpstan:
         needs: setup
@@ -81,16 +95,84 @@ jobs:
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
+
             -   name: Set up PHP
                 uses: shivammathur/setup-php@v2
                 with:
-                    php-version: '8.4'
-                    extensions: mbstring, intl, pdo, pdo_mysql
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
                     coverage: none
+
             -   name: Restore Composer dependencies
                 uses: actions/cache@v4
                 with:
                     path: vendor
                     key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
             -   name: Run phpstan
                 run: ./vendor/bin/phpstan analyse
+
+    composer:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Set up PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
+                    coverage: none
+
+            -   name: Validate composer setup
+                run: composer validate --no-check-publish
+
+    phpunit-functional:
+        name: "Functional tests"
+        needs: setup
+        runs-on: ubuntu-latest
+
+        env:
+            DATABASE_URL: 'mysql://root:password@127.0.0.1:33306/app_test'
+            APP_ENV: test
+
+        services:
+            mysql:
+                image: mysql:8
+                env:
+                    MYSQL_DATABASE: app_test
+                    MYSQL_ROOT_PASSWORD: password
+                ports:
+                    - 33306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Set up PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: ${{ env.PHP_VERSION }}
+                    extensions: ${{ env.PHP_EXTENSIONS }}
+                    coverage: none
+
+            -   name: Setup problem matchers for PHPUnit
+                run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+            -   name: Restore Composer dependencies
+                uses: actions/cache@v4
+                with:
+                    path: vendor
+                    key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+
+            -   name: Prepare application
+                run: |
+                    php bin/console assets:install --no-interaction
+                    php bin/console importmap:install
+                    php bin/console doctrine:database:create --if-not-exists
+                    php bin/console doctrine:schema:update --force
+
+            -   name: Run phpunit
+                run: ./vendor/bin/phpunit --testsuite=functional
